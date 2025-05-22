@@ -70,7 +70,6 @@ router.post("/", validate(userSchema), async (req, res) => {
     };
     cleanedData.password = await hashPassword(validData.password);
     cleanedData.age = calculateAge(validData.dateofbirth);
-    console.log(cleanedData);
     const newUser = await User.create(cleanedData);
     res.status(201).json({
       success: true,
@@ -84,6 +83,75 @@ router.post("/", validate(userSchema), async (req, res) => {
     });
   }
 });
+
+const loginSchema = yup
+  .object()
+  .shape({
+    email: yup
+      .string()
+      .email("Invalid email format")
+      .required("Email is required"),
+    password: yup.string().required("Password is required"),
+  })
+  .test(
+    "credentials-check",
+    "Invalid email or password",
+    async function (value) {
+      const { email, password } = value;
+      const user = await User.getByEmail(email, true);
+      if (!user)
+        return this.createError({
+          path: "email",
+          message: "Invalid email or password",
+        });
+
+      const isValidPassword = await User.verifyPassword(
+        password,
+        user.password
+      );
+      if (!isValidPassword)
+        return this.createError({
+          path: "email",
+          message: "Invalid email or password",
+        });
+
+      this.options.context.user = user;
+
+      return true;
+    }
+  );
+
+router.post(
+  "/authenticate",
+  validate(loginSchema, (req) => ({})),
+  (req, res) => {
+    try {
+      const { user } = req;
+
+      if (!user) {
+        return res.status(401).json({ error: "Authentication failed" });
+      }
+
+      delete user.password;
+
+      res
+        .cookie("token", User.generateAuthToken(user), {
+          httpOnly: true,
+          secure: process.env.ENVIRONMENT === "production", // Ensure this is true in production (HTTPS)
+          sameSite: process.env.ENVIRONMENT === "production" ? "None" : false, // Required for cross-site requests
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        })
+        .json({
+          success: true,
+          message: "Login successful",
+          data: user,
+        });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
 
 // Thêm các route khác (GET by ID, PUT, DELETE) tương tự
 

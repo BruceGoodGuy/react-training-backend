@@ -1,4 +1,6 @@
 const db = require("../config/db");
+const { comparePasswords } = require("../utils");
+const jwt = require("jsonwebtoken");
 
 const User = {
   createTable: async () => {
@@ -61,6 +63,38 @@ const User = {
         "age",
         "isofficer",
       ]),
+
+  getByEmail: (email, includePassword = false) => {
+    const fields = [
+      "id",
+      "firstname",
+      "lastname",
+      "middlename",
+      "email",
+      "dateofbirth",
+      "age",
+      "isofficer",
+    ];
+    if (includePassword) {
+      fields.push("password");
+    }
+    return db("users").where({ email }).first().select(fields);
+  },
+
+  verifyPassword: async (plainPassword, password) => {
+    return comparePasswords(plainPassword, password);
+  },
+
+  generateAuthToken: (user) => {
+    const secretKey = process.env.SECRET_KEY;
+    const payload = {
+      id: user.id,
+      email: user.email,
+      isofficer: user.isofficer,
+    };
+    const options = { expiresIn: process.env.TOKEN_EXPIRATION || "1h" };
+    return jwt.sign(payload, secretKey, options);
+  },
 
   update: (id, updates) => db("users").where({ id }).update(updates),
 

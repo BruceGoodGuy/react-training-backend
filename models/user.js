@@ -10,6 +10,7 @@ const User = {
           table.increments("id").primary();
           table.string("firstname").notNullable();
           table.string("lastname").notNullable();
+          table.string("gender").notNullable();
           table.string("middlename").nullable();
           table.string("email").notNullable().unique();
           table.string("password").notNullable();
@@ -34,6 +35,7 @@ const User = {
       "dateofbirth",
       "age",
       "isofficer",
+      "gender",
     ]),
 
   getById: (id) =>
@@ -49,6 +51,7 @@ const User = {
         "dateofbirth",
         "age",
         "isofficer",
+        "gender",
       ]),
 
   create: (user) =>
@@ -62,6 +65,7 @@ const User = {
         "dateofbirth",
         "age",
         "isofficer",
+        "gender",
       ]),
 
   getByEmail: (email, includePassword = false) => {
@@ -74,6 +78,7 @@ const User = {
       "dateofbirth",
       "age",
       "isofficer",
+      "gender",
     ];
     if (includePassword) {
       fields.push("password");

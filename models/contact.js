@@ -8,10 +8,10 @@ const Contact = {
           table.increments("id").primary();
           table.integer("userid").notNullable();
           table.string("city").notNullable();
-          table.string("lastname").notNullable();
+          table.string("country").notNullable();
           table.string("street").notNullable();
           table.string("postalcode").nullable();
-          table.enu('type', [0, 1]).notNullable(); // 0 for Mailing, 1 for Work.
+          table.enu("type", [0, 1]).notNullable(); // 0 for Mailing, 1 for Work.
           table.timestamp("created_at").defaultTo(db.fn.now());
         });
         console.log("Created contacts table");
@@ -24,6 +24,8 @@ const Contact = {
   getById: (id) => db("contacts").where({ id }).first(),
 
   create: (contact) => db("contacts").insert(contact).returning("*"),
+
+  getByUserId: (userid) => db("contacts").where({ userid }).select("*"),
 
   update: (id, updates) => db("contacts").where({ id }).update(updates),
 

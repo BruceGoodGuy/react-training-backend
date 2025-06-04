@@ -7,7 +7,7 @@ const Identification = {
         await db.schema.createTable("identifications", (table) => {
           table.increments("id").primary();
           table.integer("userid").notNullable();
-          table.enu('type', [0, 1, 2]).notNullable(); // 0 for passport, 1 for national id card, 2 driver's license.
+          table.enu("type", [0, 1, 2]).notNullable(); // 0 for passport, 1 for national id card, 2 driver's license.
           table.string("file").notNullable();
           table.timestamp("created_at").defaultTo(db.fn.now());
         });
@@ -19,6 +19,8 @@ const Identification = {
   getAll: () => db("identifications").select("*"),
 
   getById: (id) => db("identifications").where({ id }).first(),
+
+  getByUserId: (userid) => db("identifications").where({ userid }).select("*"),
 
   create: (number) => db("identifications").insert(number).returning("*"),
 

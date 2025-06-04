@@ -21,6 +21,8 @@ const Number = {
 
   getById: (id) => db("numbers").where({ id }).first(),
 
+  getByUserId: (userid) => db("numbers").where({ userid }).select("*"),
+
   create: (number) => db("numbers").insert(number).returning("*"),
 
   update: (id, updates) => db("numbers").where({ id }).update(updates),

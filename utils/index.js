@@ -22,7 +22,7 @@ async function comparePasswords(plainPassword, hashedPassword) {
 
 function calculateAge(dobString) {
   // Parse the date string (expected format: dd/mm/yyyy)
-  const [day, month, year] = dobString.split("/").map(Number);
+  const [year, month, day] = dobString.split("-").map(Number);
 
   // Create a Date object
   const dob = new Date(year, month - 1, day); // month is 0-based in JS

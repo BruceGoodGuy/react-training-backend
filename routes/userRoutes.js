@@ -1,5 +1,6 @@
 // routes/protectedRoutes.js
 const express = require("express");
+const knex = require("../config/db");
 const router = express.Router();
 const authenticateToken = require("../middleware/authenticateToken");
 const authorizeRole = require("../middleware/authorizeRole");
@@ -72,30 +73,61 @@ router.post("/profile", authenticateToken, async (req, res) => {
     });
   }
 
-  const promiseData = [];
+  try {
+    const result = await knex.transaction(async (trx) => {
 
-  if (contacts) {
-    Contact.deleteByUserId(id);
-    const contactsWithUserId = contacts.map(contact => ({
-      ...contact,
-      userid: id,
-    }));
-    promiseData.push(Contact.batchInsert(contactsWithUserId));
+      // Update contact.
+      await Contact.deleteByUserId(id).transacting(trx);
+      if (contacts && contacts.length > 0) {
+        const contactsWithUserId = contacts.map((contact) => ({
+          ...contact,
+          userid: id,
+        }));
+        await Contact.batchInsert(contactsWithUserId).transacting(trx);
+      }
+
+      // Update email.
+      await Email.deleteByUserId(id).transacting(trx);
+      if (emails && emails.length > 0) {
+        const emailsWithUserId = emails.map((email) => ({
+          ...email,
+          userid: id,
+        }));
+        await Email.batchInsert(emailsWithUserId).transacting(trx);
+      }
+
+      // Update phone.
+      await Number.deleteByUserId(id).transacting(trx);
+      if (phones && phones.length > 0) {
+        const phonesWithUserId = phones.map((phone) => ({
+          ...phone,
+          userid: id,
+        }));
+        await Number.batchInsert(phonesWithUserId).transacting(trx);
+      }
+
+      // Update occupations.
+      await Occupation.deleteByUserId(id).transacting(trx);
+      if (occupations && occupations.length > 0) {
+        console.log("occupations to insert:", occupations);
+        const occupationsWithUserId = occupations.map((occupation) => ({
+          ...occupation,
+          userid: id,
+        }));
+        await Occupation.batchInsert(occupationsWithUserId).transacting(trx);
+      }
+
+      // Add more tables here similarly...
+
+      return { success: true, message: "All operations succeeded" };
+    });
+
+    console.log(`Successfully updated user ${id} with multiple tables`);
+    return result;
+  } catch (error) {
+    console.error(`Transaction failed:`, error);
+    throw new Error(`Database transaction failed - ${error.message}`);
   }
-
-  if (promiseData) {
-    try {
-      const data = await Promise.all(promiseData);
-      console.log(data);
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  return res.status(500).json({
-    success: false,
-    message: "Internal server error",
-  });
 });
 
 // Protected route accessible by any authenticated user

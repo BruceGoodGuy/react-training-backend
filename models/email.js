@@ -28,6 +28,8 @@ const Email = {
   update: (id, updates) => db("emails").where({ id }).update(updates),
 
   delete: (id) => db("emails").where({ id }).del(),
+  deleteByUserId: (userid) => db("emails").where({ userid }).del(),
+  batchInsert: (emails) => db("emails").insert(emails).returning("*"),
 };
 
 module.exports = Email;

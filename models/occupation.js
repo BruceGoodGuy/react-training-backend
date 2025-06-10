@@ -28,6 +28,8 @@ const Occupation = {
   update: (id, updates) => db("occupations").where({ id }).update(updates),
 
   delete: (id) => db("occupations").where({ id }).del(),
+  deleteByUserId: (userid) => db("occupations").where({ userid }).del(),
+  batchInsert: (occupations) => db("occupations").insert(occupations).returning("*"),
 };
 
 module.exports = Occupation;

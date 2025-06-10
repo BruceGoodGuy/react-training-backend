@@ -37,14 +37,16 @@ router.get("/profile", authenticateToken, async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        id: user.id,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        middlename: user.middlename,
-        email: user.email,
-        dateofbirth: user.dateofbirth,
-        age: user.age,
-        isofficer: user.isofficer,
+        user: {
+          id: user.id,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          middlename: user.middlename,
+          email: user.email,
+          dateofbirth: user.dateofbirth,
+          age: user.age,
+          isofficer: user.isofficer,
+        },
         emails: emails || [],
         numbers: numbers || [],
         contacts: contacts || [],
@@ -75,7 +77,6 @@ router.post("/profile", authenticateToken, async (req, res) => {
 
   try {
     const result = await knex.transaction(async (trx) => {
-
       // Update contact.
       await Contact.deleteByUserId(id).transacting(trx);
       if (contacts && contacts.length > 0) {
@@ -109,7 +110,6 @@ router.post("/profile", authenticateToken, async (req, res) => {
       // Update occupations.
       await Occupation.deleteByUserId(id).transacting(trx);
       if (occupations && occupations.length > 0) {
-        console.log("occupations to insert:", occupations);
         const occupationsWithUserId = occupations.map((occupation) => ({
           ...occupation,
           userid: id,
@@ -117,16 +117,41 @@ router.post("/profile", authenticateToken, async (req, res) => {
         await Occupation.batchInsert(occupationsWithUserId).transacting(trx);
       }
 
-      // Add more tables here similarly...
+      // Update identifications.
+      await Identification.deleteByUserId(id).transacting(trx);
+      if (identifications && identifications.length > 0) {
+        console.log("identifications to insert:", identifications);
+        const identificationsWithUserId = identifications.map((occupation) => ({
+          ...occupation,
+          userid: id,
+        }));
+        await Identification.batchInsert(identificationsWithUserId).transacting(
+          trx
+        );
+      }
 
-      return { success: true, message: "All operations succeeded" };
+      if (user && Object.keys(user).length > 0) {
+        // Update user profile.
+        const updatedUser = await User.updateById(id, user).transacting(trx);
+        console.log("Updated user:", updatedUser);
+      }
+
+      console.log("All updates completed successfully", user);
+
+      // Add more tables here similarly.
     });
-
-    console.log(`Successfully updated user ${id} with multiple tables`);
-    return result;
+    return res.status(201).json({
+      success: true,
+      message: "Updated user profile successfully",
+    });
   } catch (error) {
     console.error(`Transaction failed:`, error);
-    throw new Error(`Database transaction failed - ${error.message}`);
+    // throw new Error(`Database transaction failed - ${error.message}`);
+    console.error("Error fetching user profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 });
 

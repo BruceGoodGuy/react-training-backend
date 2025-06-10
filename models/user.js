@@ -86,6 +86,13 @@ const User = {
     return db("users").where({ email }).first().select(fields);
   },
 
+  updateById: (id, { dateofbirth, firstname, lastname, middlename }) => {
+    return db("users")
+      .where({ id })
+      .update({ dateofbirth, firstname, lastname, middlename })
+      .returning(["id", "firstname", "lastname", "middlename", "dateofbirth"]);
+  },
+
   verifyPassword: async (plainPassword, password) => {
     return comparePasswords(plainPassword, password);
   },

@@ -28,6 +28,8 @@ const Identification = {
   update: (id, updates) => db("identifications").where({ id }).update(updates),
 
   delete: (id) => db("identifications").where({ id }).del(),
+  deleteByUserId: (userid) => db("identifications").where({ userid }).del(),
+  batchInsert: (identifications) => db("identifications").insert(identifications).returning("*"),
 };
 
 module.exports = Identification;

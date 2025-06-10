@@ -60,6 +60,44 @@ router.get("/profile", authenticateToken, async (req, res) => {
   }
 });
 
+router.post("/profile", authenticateToken, async (req, res) => {
+  console.log(req.body);
+  const { id, isofficer } = req.user;
+  const { identifications, occupations, phones, emails, user, contacts } =
+    req.body;
+  if (isofficer) {
+    return res.status(401).json({
+      success: false,
+      message: "Officers can't edit themselves.",
+    });
+  }
+
+  const promiseData = [];
+
+  if (contacts) {
+    Contact.deleteByUserId(id);
+    const contactsWithUserId = contacts.map(contact => ({
+      ...contact,
+      userid: id,
+    }));
+    promiseData.push(Contact.batchInsert(contactsWithUserId));
+  }
+
+  if (promiseData) {
+    try {
+      const data = await Promise.all(promiseData);
+      console.log(data);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "Internal server error",
+  });
+});
+
 // Protected route accessible by any authenticated user
 router.get("/guest", authenticateToken, authorizeRole("user"), (req, res) => {
   res.json({ message: `Welcome, ${req.user.email}!` });

@@ -30,6 +30,8 @@ const Contact = {
   update: (id, updates) => db("contacts").where({ id }).update(updates),
 
   delete: (id) => db("contacts").where({ id }).del(),
+  deleteByUserId: (userid) => db("contacts").where({ userid }).del(),
+  batchInsert: (contacts) => db("contacts").insert(contacts).returning("*"),
 };
 
 module.exports = Contact;

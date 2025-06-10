@@ -9,6 +9,7 @@ const Identification = {
           table.integer("userid").notNullable();
           table.enu("type", [0, 1, 2]).notNullable(); // 0 for passport, 1 for national id card, 2 driver's license.
           table.string("file").notNullable();
+          table.timestamp("expire_date").defaultTo(db.fn.now());
           table.timestamp("created_at").defaultTo(db.fn.now());
         });
         console.log("Created identifications table");

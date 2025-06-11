@@ -38,6 +38,19 @@ const User = {
       "gender",
     ]),
 
+  getAllButMe: (userId) =>
+    db("users")
+      .whereNot({ id: userId })
+      .select([
+        "id",
+        "firstname",
+        "lastname",
+        "middlename",
+        "email",
+        "gender",
+        "isofficer",
+      ]),
+
   getById: (id) =>
     db("users")
       .where({ id })

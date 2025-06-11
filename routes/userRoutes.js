@@ -64,7 +64,6 @@ router.get("/profile", authenticateToken, async (req, res) => {
 });
 
 router.post("/profile", authenticateToken, async (req, res) => {
-  console.log(req.body);
   const { id, isofficer } = req.user;
   const { identifications, occupations, phones, emails, user, contacts } =
     req.body;
@@ -76,7 +75,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
   }
 
   try {
-    const result = await knex.transaction(async (trx) => {
+    await knex.transaction(async (trx) => {
       // Update contact.
       await Contact.deleteByUserId(id).transacting(trx);
       if (contacts && contacts.length > 0) {
@@ -146,7 +145,6 @@ router.post("/profile", authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error(`Transaction failed:`, error);
-    // throw new Error(`Database transaction failed - ${error.message}`);
     console.error("Error fetching user profile:", error);
     return res.status(500).json({
       success: false,
@@ -154,6 +152,29 @@ router.post("/profile", authenticateToken, async (req, res) => {
     });
   }
 });
+
+router.get(
+  "/list",
+  authenticateToken,
+  authorizeRole("admin"),
+  async (req, res) => {
+    try {
+      const users = await User.getAllButMe(req.user.id);
+      return res.status(200).json({
+        success: true,
+        data: {
+          users,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching user list:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  }
+);
 
 // Protected route accessible by any authenticated user
 router.get("/guest", authenticateToken, authorizeRole("user"), (req, res) => {

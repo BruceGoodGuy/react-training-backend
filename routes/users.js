@@ -82,7 +82,6 @@ const userSchema = yup.object().shape({
 
 router.post("/", validate(userSchema), async (req, res) => {
   try {
-    console.log(req.body);
     const validData = await userSchema.validate(req.body);
     const cleanedData = {
       firstname: validData.firstName,

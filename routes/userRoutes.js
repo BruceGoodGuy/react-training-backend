@@ -10,6 +10,97 @@ const Number = require("../models/number");
 const Contact = require("../models/contact");
 const Identification = require("../models/identification");
 const Occupation = require("../models/occupation");
+const Asset = require("../models/asset");
+const Income = require("../models/income");
+const Investment = require("../models/investment");
+const Kyc = require("../models/kyc");
+const Liability = require("../models/liability");
+const SourceOfWealth = require("../models/sourceofwealth");
+
+async function getUserProfileData(userId) {
+  try {
+    const [user, emails, numbers, contacts, identifications, occupations] =
+      await Promise.all([
+        User.getById(userId),
+        Email.getByUserId(userId),
+        Number.getByUserId(userId),
+        Contact.getByUserId(userId),
+        Identification.getByUserId(userId),
+        Occupation.getByUserId(userId),
+      ]);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return {
+      user: {
+        id: user.id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        middlename: user.middlename,
+        email: user.email,
+        dateofbirth: user.dateofbirth,
+        age: user.age,
+        isofficer: user.isofficer,
+      },
+      emails: emails || [],
+      numbers: numbers || [],
+      contacts: contacts || [],
+      identifications: identifications || [],
+      occupations: occupations || [],
+    };
+  } catch (error) {
+    console.error("Error fetching user profile data:", error);
+    throw error;
+  }
+}
+
+async function getKycData(userId) {
+  try {
+    const kyc = await Kyc.getByUserId(userId);
+    let promiseData = [User.getById(userId)];
+    console.log("KYC Data:", kyc);
+    if (kyc.length > 0) {
+      promiseData = [
+        ...promiseData,
+        Asset.getByKycId(kyc.id),
+        Income.getByKycId(kyc.id),
+        Investment.getByKycId(kyc.id),
+        Liability.getByKycId(kyc.id),
+        SourceOfWealth.getByKycId(kyc.id),
+      ];
+    }
+    const [user, assets, incomes, investments, liabilities, sourceofwealth] =
+      await Promise.all(promiseData);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return {
+      user: {
+        id: user.id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        middlename: user.middlename,
+        email: user.email,
+        dateofbirth: user.dateofbirth,
+        age: user.age,
+        isofficer: user.isofficer,
+      },
+      assets: assets || [],
+      incomes: incomes || [],
+      investments: investments || {},
+      kycs: kyc || [],
+      liabilities: liabilities || [],
+      sourcesOfWealth: sourceofwealth || [],
+    };
+  } catch (error) {
+    console.error("Error fetching KYC data:", error);
+    throw error;
+  }
+}
 
 router.get("/status", authenticateToken, (req, res) => {
   return res.status(200).json({
@@ -19,40 +110,14 @@ router.get("/status", authenticateToken, (req, res) => {
 });
 
 router.get("/profile", authenticateToken, async (req, res) => {
-  console.log(req.user);
   const { id } = req.user;
 
   try {
-    const [user, emails, numbers, contacts, identifications, occupations] =
-      await Promise.all([
-        User.getById(id),
-        Email.getByUserId(id),
-        Number.getByUserId(id),
-        Contact.getByUserId(id),
-        Identification.getByUserId(id),
-        Occupation.getByUserId(id),
-      ]);
-    console.log(user, emails, numbers, contacts, identifications, occupations);
+    const profileData = await getUserProfileData(id);
 
     res.status(200).json({
       success: true,
-      data: {
-        user: {
-          id: user.id,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          middlename: user.middlename,
-          email: user.email,
-          dateofbirth: user.dateofbirth,
-          age: user.age,
-          isofficer: user.isofficer,
-        },
-        emails: emails || [],
-        numbers: numbers || [],
-        contacts: contacts || [],
-        identifications: identifications || [],
-        occupations: occupations || [],
-      },
+      data: profileData,
     });
   } catch (error) {
     console.error("Error fetching user profile:", error);
@@ -62,6 +127,49 @@ router.get("/profile", authenticateToken, async (req, res) => {
     });
   }
 });
+
+router.get("/kyc", authenticateToken, async (req, res) => {
+  const { id } = req.user;
+
+  try {
+    const kycData = await getKycData(id);
+
+    res.status(200).json({
+      success: true,
+      data: kycData,
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+router.get(
+  "/profile/:id",
+  authenticateToken,
+  authorizeRole("admin"),
+  async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const profileData = await getUserProfileData(id);
+
+      res.status(200).json({
+        success: true,
+        data: profileData,
+      });
+    } catch (error) {
+      console.error("Error fetching user profile by ID:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  }
+);
 
 router.post("/profile", authenticateToken, async (req, res) => {
   const { id, isofficer } = req.user;
@@ -119,7 +227,6 @@ router.post("/profile", authenticateToken, async (req, res) => {
       // Update identifications.
       await Identification.deleteByUserId(id).transacting(trx);
       if (identifications && identifications.length > 0) {
-        console.log("identifications to insert:", identifications);
         const identificationsWithUserId = identifications.map((occupation) => ({
           ...occupation,
           userid: id,
@@ -132,10 +239,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
       if (user && Object.keys(user).length > 0) {
         // Update user profile.
         const updatedUser = await User.updateById(id, user).transacting(trx);
-        console.log("Updated user:", updatedUser);
       }
-
-      console.log("All updates completed successfully", user);
 
       // Add more tables here similarly.
     });

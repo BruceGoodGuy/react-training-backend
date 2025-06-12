@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/user");
 const {
-  isValidDateDDMMYYYY,
+  isValidDateYYYYMMDD,
   isAtLeast18YearsOld,
 } = require("../utils/validation");
 const { hashPassword, calculateAge } = require("../utils");
@@ -32,9 +32,9 @@ router.get("/:userid", async (req, res) => {
 });
 
 const userSchema = yup.object().shape({
-  firstname: yup.string().required().max(50),
-  lastname: yup.string().required().max(50),
-  middlename: yup.string().max(50),
+  firstName: yup.string().required().max(50),
+  lastName: yup.string().required().max(50),
+  middleName: yup.string().max(50),
   email: yup
     .string()
     .email()
@@ -43,33 +43,57 @@ const userSchema = yup.object().shape({
       return await User.isEmailUnique(value);
     }),
   password: yup.string().required().min(6).max(50),
-  dateofbirth: yup
+  dateOfBirth: yup
     .string()
     .required()
     .test(
       "valid-format",
-      "Date of birth must be in dd/mm/yyyy format",
-      (value) => isValidDateDDMMYYYY(value)
+      "Date of birth must be in yyyy-mm-dd format",
+      (value) => isValidDateYYYYMMDD(value)
     )
     .test("minimum-age", "You must be at least 18 years old", (value) =>
       isAtLeast18YearsOld(value)
     ),
+  gender: yup
+    .string()
+    .required()
+    .oneOf([
+      "male",
+      "female",
+      "transgender_male",
+      "transgender_female",
+      "non_binary",
+      "genderqueer",
+      "genderfluid",
+      "agender",
+      "bigender",
+      "demiboy",
+      "demigirl",
+      "two_spirit",
+      "pangender",
+      "androgyne",
+      "intersex",
+      "third_gender",
+      "neutrois",
+      "questioning",
+      "other",
+    ]),
 });
 
 router.post("/", validate(userSchema), async (req, res) => {
   try {
-    console.log(req.body);
     const validData = await userSchema.validate(req.body);
     const cleanedData = {
-      firstname: validData.firstname,
-      lastname: validData.lastname,
-      middlename: validData.middlename,
+      firstname: validData.firstName,
+      lastname: validData.lastName,
+      middlename: validData.middleName,
       email: validData.email,
       password: validData.password,
-      dateofbirth: validData.dateofbirth,
+      dateofbirth: validData.dateOfBirth,
+      gender: validData.gender,
     };
     cleanedData.password = await hashPassword(validData.password);
-    cleanedData.age = calculateAge(validData.dateofbirth);
+    cleanedData.age = calculateAge(validData.dateOfBirth);
     const newUser = await User.create(cleanedData);
     res.status(201).json({
       success: true,

@@ -8,7 +8,7 @@ const Number = {
           table.increments("id").primary();
           table.integer("userid").notNullable();
           table.string("number").notNullable();
-          table.enu('type', [0, 1]).notNullable(); // 0 for Work, 1 for Personal.
+          table.enu("type", [0, 1]).notNullable(); // 0 for Work, 1 for Personal.
           table.boolean("preferred").notNullable();
           table.timestamp("created_at").defaultTo(db.fn.now());
         });
@@ -21,11 +21,15 @@ const Number = {
 
   getById: (id) => db("numbers").where({ id }).first(),
 
+  getByUserId: (userid) => db("numbers").where({ userid }).select("*"),
+
   create: (number) => db("numbers").insert(number).returning("*"),
 
   update: (id, updates) => db("numbers").where({ id }).update(updates),
 
   delete: (id) => db("numbers").where({ id }).del(),
+  deleteByUserId: (userid) => db("numbers").where({ userid }).del(),
+  batchInsert: (numbers) => db("numbers").insert(numbers).returning("*"),
 };
 
 module.exports = Number;

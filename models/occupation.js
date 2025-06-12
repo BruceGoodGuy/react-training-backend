@@ -7,7 +7,7 @@ const Occupation = {
         await db.schema.createTable("occupations", (table) => {
           table.increments("id").primary();
           table.integer("userid").notNullable();
-          table.enu('occupation', [0, 1]).notNullable(); // 0 for employed, 1 for unemployed.
+          table.enu("occupation", [0, 1]).notNullable(); // 0 for employed, 1 for unemployed.
           table.date("from").notNullable();
           table.date("to").notNullable();
           table.timestamp("created_at").defaultTo(db.fn.now());
@@ -21,11 +21,15 @@ const Occupation = {
 
   getById: (id) => db("occupations").where({ id }).first(),
 
+  getByUserId: (userid) => db("occupations").where({ userid }).select("*"),
+
   create: (number) => db("occupations").insert(number).returning("*"),
 
   update: (id, updates) => db("occupations").where({ id }).update(updates),
 
   delete: (id) => db("occupations").where({ id }).del(),
+  deleteByUserId: (userid) => db("occupations").where({ userid }).del(),
+  batchInsert: (occupations) => db("occupations").insert(occupations).returning("*"),
 };
 
 module.exports = Occupation;

@@ -8,7 +8,7 @@ const Email = {
           table.increments("id").primary();
           table.integer("userid").notNullable();
           table.string("email").notNullable();
-          table.enu('type', [0, 1]).notNullable(); // 0 for Work, 1 for Personal.
+          table.enu("type", [0, 1]).notNullable(); // 0 for Work, 1 for Personal.
           table.boolean("preferred").notNullable();
           table.timestamp("created_at").defaultTo(db.fn.now());
         });
@@ -21,11 +21,15 @@ const Email = {
 
   getById: (id) => db("emails").where({ id }).first(),
 
+  getByUserId: (userid) => db("emails").where({ userid }).select("*"),
+
   create: (email) => db("emails").insert(email).returning("*"),
 
   update: (id, updates) => db("emails").where({ id }).update(updates),
 
   delete: (id) => db("emails").where({ id }).del(),
+  deleteByUserId: (userid) => db("emails").where({ userid }).del(),
+  batchInsert: (emails) => db("emails").insert(emails).returning("*"),
 };
 
 module.exports = Email;

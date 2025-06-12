@@ -10,6 +10,7 @@ const User = {
           table.increments("id").primary();
           table.string("firstname").notNullable();
           table.string("lastname").notNullable();
+          table.string("gender").notNullable();
           table.string("middlename").nullable();
           table.string("email").notNullable().unique();
           table.string("password").notNullable();
@@ -34,7 +35,21 @@ const User = {
       "dateofbirth",
       "age",
       "isofficer",
+      "gender",
     ]),
+
+  getAllButMe: (userId) =>
+    db("users")
+      .whereNot({ id: userId })
+      .select([
+        "id",
+        "firstname",
+        "lastname",
+        "middlename",
+        "email",
+        "gender",
+        "isofficer",
+      ]),
 
   getById: (id) =>
     db("users")
@@ -49,6 +64,7 @@ const User = {
         "dateofbirth",
         "age",
         "isofficer",
+        "gender",
       ]),
 
   create: (user) =>
@@ -62,6 +78,7 @@ const User = {
         "dateofbirth",
         "age",
         "isofficer",
+        "gender",
       ]),
 
   getByEmail: (email, includePassword = false) => {
@@ -74,11 +91,19 @@ const User = {
       "dateofbirth",
       "age",
       "isofficer",
+      "gender",
     ];
     if (includePassword) {
       fields.push("password");
     }
     return db("users").where({ email }).first().select(fields);
+  },
+
+  updateById: (id, { dateofbirth, firstname, lastname, middlename }) => {
+    return db("users")
+      .where({ id })
+      .update({ dateofbirth, firstname, lastname, middlename })
+      .returning(["id", "firstname", "lastname", "middlename", "dateofbirth"]);
   },
 
   verifyPassword: async (plainPassword, password) => {

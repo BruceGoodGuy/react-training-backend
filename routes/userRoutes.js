@@ -147,6 +147,98 @@ router.get("/kyc", authenticateToken, async (req, res) => {
   }
 });
 
+router.post(
+  "/kyc",
+  authenticateToken,
+  authorizeRole("user"),
+  async (req, res) => {
+    const { id } = req.user;
+    const { assets, incomes, investments, liabilities, sourcesOfWealth, kyc } =
+      req.body;
+
+    try {
+      await knex.transaction(async (trx) => {
+        // Insert or update KYC record
+        let kycId;
+        const existingKyc = await Kyc.getByUserId(id);
+
+        if (existingKyc && existingKyc.length > 0) {
+          await Kyc.updateById(existingKyc.id, {
+            ...kyc,
+            userid: id,
+          }).transacting(trx);
+          kycId = existingKyc.id;
+        } else {
+          const [newKycId] = await Kyc.create({
+            ...kyc,
+            userid: id,
+          }).transacting(trx);
+          kycId = newKycId;
+        }
+
+        // Handle assets
+        await Asset.deleteByKycId(kycId).transacting(trx);
+        if (assets && assets.length > 0) {
+          const assetsWithKycId = assets.map((asset) => ({
+            ...asset,
+            kycid: kycId,
+          }));
+          await Asset.batchInsert(assetsWithKycId).transacting(trx);
+        }
+
+        // Handle incomes
+        await Income.deleteByKycId(kycId).transacting(trx);
+        if (incomes && incomes.length > 0) {
+          const incomesWithKycId = incomes.map((income) => ({
+            ...income,
+            kycid: kycId,
+          }));
+          await Income.batchInsert(incomesWithKycId).transacting(trx);
+        }
+
+        // Handle investments
+        await Investment.deleteByKycId(kycId).transacting(trx);
+        if (investments && Object.keys(investments).length > 0) {
+          await Investment.create({ ...investments, kycid: kycId }).transacting(
+            trx
+          );
+        }
+
+        // Handle liabilities
+        await Liability.deleteByKycId(kycId).transacting(trx);
+        if (liabilities && liabilities.length > 0) {
+          const liabilitiesWithKycId = liabilities.map((liability) => ({
+            ...liability,
+            kycid: kycId,
+          }));
+          await Liability.batchInsert(liabilitiesWithKycId).transacting(trx);
+        }
+
+        // Handle sources of wealth
+        await SourceOfWealth.deleteByKycId(kycId).transacting(trx);
+        if (sourcesOfWealth && sourcesOfWealth.length > 0) {
+          const sourcesWithKycId = sourcesOfWealth.map((source) => ({
+            ...source,
+            kycid: kycId,
+          }));
+          await SourceOfWealth.batchInsert(sourcesWithKycId).transacting(trx);
+        }
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "KYC data updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating KYC data:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  }
+);
+
 router.get(
   "/profile/:id",
   authenticateToken,

@@ -23,12 +23,13 @@ const Asset = {
   create: (asset) => db("assets").insert(asset).returning("*"),
 
   getByUserId: (userid) => db("assets").where({ userid }).select("*"),
-  getByKycId: (kycid) => db("assets").where({ kycid }).select("*"),
+  getByKycId: (kycid) => db("assets").where("kycid", kycid).select("*"),
 
   update: (id, updates) => db("assets").where({ id }).update(updates),
 
   delete: (id) => db("assets").where({ id }).del(),
   deleteByUserId: (userid) => db("assets").where({ userid }).del(),
+  deleteByKycId: (kycid) => db("assets").where({ kycid }).del(),
   batchInsert: (assets) => db("assets").insert(assets).returning("*"),
 };
 

@@ -27,6 +27,7 @@ const Income = {
   update: (id, updates) => db("incomes").where({ id }).update(updates),
 
   delete: (id) => db("incomes").where({ id }).del(),
+  deleteByKycId: (kycid) => db("incomes").where({ kycid }).del(),
   deleteByUserId: (userid) => db("incomes").where({ userid }).del(),
   batchInsert: (incomes) => db("incomes").insert(incomes).returning("*"),
 };

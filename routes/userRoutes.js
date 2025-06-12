@@ -60,8 +60,7 @@ async function getKycData(userId) {
   try {
     const kyc = await Kyc.getByUserId(userId);
     let promiseData = [User.getById(userId)];
-    console.log("KYC Data:", kyc);
-    if (kyc.length > 0) {
+    if (kyc && Object.keys(kyc).length > 0) {
       promiseData = [
         ...promiseData,
         Asset.getByKycId(kyc.id),
@@ -94,7 +93,7 @@ async function getKycData(userId) {
       investments: investments || {},
       kycs: kyc || [],
       liabilities: liabilities || [],
-      sourcesOfWealth: sourceofwealth || [],
+      sourceofwealths: sourceofwealth || [],
     };
   } catch (error) {
     console.error("Error fetching KYC data:", error);
@@ -147,33 +146,74 @@ router.get("/kyc", authenticateToken, async (req, res) => {
   }
 });
 
+router.get(
+  "/kyc/:id",
+  authenticateToken,
+  authorizeRole("admin"),
+  async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const kycData = await getKycData(id);
+
+      res.status(200).json({
+        success: true,
+        data: kycData,
+      });
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  }
+);
+
+router.post("/logout", authenticateToken, (req, res) => {
+  // Clear the JWT token by sending an expired token
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
+});
+
 router.post(
   "/kyc",
   authenticateToken,
   authorizeRole("user"),
   async (req, res) => {
     const { id } = req.user;
-    const { assets, incomes, investments, liabilities, sourcesOfWealth, kyc } =
+    const { assets, incomes, investments, liabilities, sourceofwealths } =
       req.body;
 
     try {
       await knex.transaction(async (trx) => {
         // Insert or update KYC record
         let kycId;
-        const existingKyc = await Kyc.getByUserId(id);
+        const existingKyc = await Kyc.getByUserId(id).transacting(trx);
 
-        if (existingKyc && existingKyc.length > 0) {
-          await Kyc.updateById(existingKyc.id, {
-            ...kyc,
-            userid: id,
+        if (existingKyc && Object.keys(existingKyc).length > 0) {
+          await Kyc.update(existingKyc.id, {
+            ...existingKyc,
+            status: "1", // 1 for pending
+            approve_status: "0",
           }).transacting(trx);
           kycId = existingKyc.id;
         } else {
           const [newKycId] = await Kyc.create({
-            ...kyc,
+            status: "1", // 3 for draft
+            approve_status: "0", // 0 for pending
             userid: id,
           }).transacting(trx);
-          kycId = newKycId;
+          kycId = newKycId.id;
         }
 
         // Handle assets
@@ -216,8 +256,8 @@ router.post(
 
         // Handle sources of wealth
         await SourceOfWealth.deleteByKycId(kycId).transacting(trx);
-        if (sourcesOfWealth && sourcesOfWealth.length > 0) {
-          const sourcesWithKycId = sourcesOfWealth.map((source) => ({
+        if (sourceofwealths && sourceofwealths.length > 0) {
+          const sourcesWithKycId = sourceofwealths.map((source) => ({
             ...source,
             kycid: kycId,
           }));

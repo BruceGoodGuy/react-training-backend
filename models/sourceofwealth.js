@@ -28,6 +28,7 @@ const SourceOfWealth = {
   update: (id, updates) => db("sourceofwealths").where({ id }).update(updates),
 
   delete: (id) => db("sourceofwealths").where({ id }).del(),
+  deleteByKycId: (kycid) => db("sourceofwealths").where({ kycid }).del(),
   deleteByUserId: (userid) => db("sourceofwealths").where({ userid }).del(),
   batchInsert: (sourceOfWealths) =>
     db("sourceofwealths").insert(sourceOfWealths).returning("*"),

@@ -19,7 +19,7 @@ const Investment = {
   getAll: () => db("investments").select("*"),
 
   getById: (id) => db("investments").where({ id }).first(),
-  getByKycId: (kycid) => db("investments").where({ kycid }).select("*"),
+  getByKycId: (kycid) => db("investments").where({ kycid }).first(),
   create: (investment) => db("investments").insert(investment).returning("*"),
 
   getByUserId: (userid) => db("investments").where({ userid }).select("*"),
@@ -28,6 +28,7 @@ const Investment = {
 
   delete: (id) => db("investments").where({ id }).del(),
   deleteByUserId: (userid) => db("investments").where({ userid }).del(),
+  deleteByKycId: (kycid) => db("investments").where({ kycid }).del(),
   batchInsert: (investments) =>
     db("investments").insert(investments).returning("*"),
 };

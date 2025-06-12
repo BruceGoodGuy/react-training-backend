@@ -23,7 +23,7 @@ const Liability = {
   create: (liability) => db("liabilities").insert(liability).returning("*"),
 
   getByUserId: (userid) => db("liabilities").where({ userid }).select("*"),
-
+  deleteByKycId: (kycid) => db("liabilities").where({ kycid }).del(),
   update: (id, updates) => db("liabilities").where({ id }).update(updates),
 
   delete: (id) => db("liabilities").where({ id }).del(),
